@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taktyczny Skaner i Podręcznik Egzorcysty</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0f;
+            --text-main: #d1d1d1;
+            --accent-gold: #c5a059;
+            --accent-red: #9e1a1a;
+            --accent-blue: #4a6b8c;
+            --border-color: #2a2a35;
+            --card-bg: #15151e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--accent-gold); text-transform: uppercase; letter-spacing: 2px; font-size: 1.8em; }
+
+        /* Skaner kamerki */
+        .scanner-section {
+            background: var(--card-bg);
+            border: 2px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            margin: 0 auto 15px auto;
+            background: #000;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .camera-error {
+            display: none;
+            position: absolute;
+            color: var(--accent-red);
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.9);
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            border: 2px solid var(--accent-red);
+            z-index: 10;
+        }
+        .scanner-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(197, 160, 89, 0.05) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .target-box {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px; height: 150px;
+            border: 2px dashed var(--accent-red);
+            pointer-events: none;
+        }
+
+        .btn {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+        .btn:hover { background: #fff; box-shadow: 0 0 10px var(--accent-gold); }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            background: var(--card-bg);
+            border: 1px solid var(--accent-gold);
+            color: #fff;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .grid-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .card:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
+        .card h3 { margin-top: 0; font-size: 1em; }
+        
+        .svg-container {
+            display: flex; justify-content: center; align-items: center;
+            height: 100px; background-color: #0d0d12; border: 1px solid #000; margin-bottom: 10px;
+        }
+        svg { width: 70px; height: 70px; }
+        
+        /* Modal wyników i egzorcyzmów */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: var(--card-bg); border: 2px solid var(--accent-red); border-radius: 8px;
+            width: 90%; max-width: 650px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .close-btn {
+            position: absolute; top: 15px; right: 20px; color: var(--accent-gold); font-size: 24px;
+            cursor: pointer; font-weight: bold; background: none; border: none;
+        }
+        .power-bar-container { background: #222; height: 12px; width: 100%; margin-top: 5px; border-radius: 3px; overflow: hidden; }
+        .power-bar { height: 100%; background: var(--accent-red); width: 0%; transition: width 0.5s; }
+        
+        .exorcism-box {
+            background: #1a0f0f;
+            border-left: 3px solid var(--accent-red);
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .sign-box {
+            background: #0f151a;
+            border-left: 3px solid var(--accent-blue);
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Taktyczny System Skanowania i Egzorcyzmów</h1>
+        <p>Inwentarz Zagrożeń Nieofizycznych i Analiza Śladów Przeszłości</p>
+    </header>
+
+    <!-- SEKCYJNY SKANER KAMERKI -->
+    <div class="scanner-section">
+        <h2 style="color: var(--accent-gold); margin-top: 0;">Skaner Wizyjny Otoczenia</h2>
+        <div class="camera-container">
+            <video id="cameraStream" autoplay playsinline></video>
+            <div id="cameraError" class="camera-error">
+                Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki
+            </div>
+            <div class="scanner-overlay"></div>
+            <div class="target-box"></div>
+        </div>
+        <button id="scanBtn" class="btn" onclick="triggerCameraScan()" disabled>Inicjuj Skanowanie Sygnatury</button>
+        <p id="scannerStatus" style="margin-top: 10px; font-size: 0.9em; color: var(--accent-gold);">Status systemu: Inicjalizacja strumienia wideo...</p>
+    </div>
+
+    <!-- WYSZUKIWARKA -->
+    <input type="text" id="searchInput" class="search-box" placeholder="Szukaj w bazie po nazwie lub śladzie (np. 'Poltergeist', 'Wyrwa', 'Pentakl')..." onkeyup="filterDatabase()">
+
+    <div id="database-grid" class="grid-wrapper"></div>
+</div>
+
+<!-- Modal Wyników Taktycznych -->
+<div class="modal-overlay" id="infoModal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="document.getElementById('infoModal').style.display='none'">&times;</button>
+        <div id="modal-svg" class="svg-container" style="height: 140px; border-color: var(--accent-gold);"></div>
+        <h2 id="modal-title" style="color: var(--accent-gold); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top:0;">Nazwa</h2>
+        <p><strong>Klasa Bytu / Zjawiska:</strong> <span id="modal-type"></span></p>
+        <p><strong>Poziom Zagrożenia:</strong> <span id="modal-power-text"></span>/100</p>
+        <div class="power-bar-container"><div id="modal-power-bar" class="power-bar"></div></div>
+        
+        <h3 style="margin-top: 15px; color:#fff;">Co tu się wcześniej odpierdoliło? (Analiza Śladu)</h3>
+        <p id="modal-desc"></p>
+        
+        <div class="sign-box">
+            <strong style="color: var(--accent-blue);">Co oznacza ten znak / manifestacja?</strong>
+            <p id="modal-sign-meaning" style="margin: 5px 0 0 0;"></p>
+        </div>
+
+        <div class="exorcism-box">
+            <strong style="color: var(--accent-red);">Protokół Egzorcyzmu i Eliminacji (Bezwzględne usunięcie):</strong>
+            <p id="modal-exorcism" style="margin: 5px 0 0 0;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const database = [];
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    
+    let cameraActive = false;
+
+    const getSVG = (type, color) => {
+        if(type === 'pentagram') return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="${color}" stroke-width="2"/><polygon points="50,5 64,40 98,40 70,62 80,95 50,75 20,95 30,62 2,40 36,40" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+        if(type === 'ghost') return `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="20" ry="25" fill="none" stroke="${color}" stroke-width="2"/><path d="M 30,40 Q 30,80 50,90 Q 70,80 70,40" fill="none" stroke="${color}" stroke-width="2"/><circle cx="43" cy="35" r="3" fill="${color}"/><circle cx="57" cy="35" r="3" fill="${color}"/></svg>`;
+        return `<svg viewBox="0 0 100 100"><path d="M 10,50 Q 50,10 90,50 Q 50,90 10,50" fill="none" stroke="${color}" stroke-width="2"/><circle cx="50" cy="50" r="15" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
+    };
+
+    // GENEROWANIE BAZY DANYCH ZE SPECYFIKACJĄ EGZORCYZMÓW I ZNAKÓW
+    const p_prefixes = ["Pentakl", "Heksagram", "Pieczęć", "Znak Ochronny", "Matryca"];
+    const p_suffixes = ["Światła", "Wiązania", "Odpychania", "Równowagi", "Pustki"];
+    for(let i = 1; i <= 100; i++) {
+        database.push({
+            id: 'p' + i, kategoria: 'Geometria / Znak Zabezpieczający',
+            nazwa: `${rand(p_prefixes)} ${rand(p_suffixes)} (Model #${i})`,
+            sila: randInt(10, 85),
+            opis: `W tym miejscu przeprowadzono nieautoryzowaną próbę zakotwiczenia energii lub zabezpieczenia przestrzeni przed infiltracją z zewnątrz.`,
+            znaczenie: `Obecność tego znaku oznacza, że teren był celowo porządkowany lub zamykany przed napływem niższych częstotliwości.`,
+            egzorcyzm: `Egzorcyzm aktywacyjny: Oczyszczenie solą, nakreślenie linii odwrotnej w celu dezaktywacji przestarzałej matrycy i postawienie nowego, czystego heksagramu wiążącego.`,
+            svg: getSVG('pentagram', '#c5a059')
+        });
+    }
+
+    const g_prefixes = ["Zjawa", "Poltergeist", "Echo", "Kolekcjoner", "Widmo"];
+    const g_motives = ["Korytarza", "Piwnicy", "Żalu", "Gniewu", "Rozpaczy"];
+    for(let i = 1; i <= 200; i++) {
+        database.push({
+            id: 'g' + i, kategoria: 'Duch / Byt Niefizyczny (Reaktywny)',
+            nazwa: `${rand(g_prefixes)} ${rand(g_motives)} [Manifestacja #${i}]`,
+            sila: randInt(15, 60),
+            opis: `Doszło tu do gwałtownego wydarzenia emocjonalnego lub nagłego zgonu, którego ślad energetyczny zakotwiczył się w strukturze ścian i posadzki.`,
+            znaczenie: `Ślad termiczny i kinetyczny – byt próbuje wymusić uwagę otoczenia poprzez manipulowanie przedmiotami i generowanie niskich temperatur.`,
+            egzorcyzm: `Egzorcyzm zerwania więzi i odesłania: Zastosowanie rezonansu dźwiękowego o wysokiej częstotliwości (np. dzwon/kamerton), odczytanie formuły odcięcia emocjonalnego i całkowite zamknięcie portalu pamięci lokalnej.`,
+            svg: getSVG('ghost', '#4a6b8c')
+        });
+    }
+
+    const d_prefixes = ["Szczelina", "Demon", "Pasożyt", "Anomalia", "Wyrwa Przestrzenna"];
+    const d_suffixes = ["Klasy X", "Typu Cień", "Wymiaru Niższego", "Entropii", "Żywiąca się Strachem"];
+    for(let i = 1; i <= 400; i++) {
+        let isAnomaly = Math.random() > 0.5;
+        database.push({
+            id: 'd' + i, kategoria: isAnomaly ? 'Anomalia Przestrzenna' : 'Demon Wysokiego Zagrożenia',
+            nazwa: `${rand(d_prefixes)} ${rand(d_suffixes)} (ID: 0x${Math.floor(Math.random()*16777215).toString(16)})`,
+            sila: randInt(70, 100),
+            opis: isAnomaly ? `Przeprowadzono tu mroczny rytuał otwarcie przejścia, co doprowadziło do rozszczelnienia lokalnej osłony czasoprzestrzennej.` : `Byt żerujący na panice. Ofiara w tym rejonie doświadczała paraliżu sennego, myśli rezygnacyjnych i gwałtownego drenażu energii życiowej.`,
+            znaczenie: `Sygnatura ekstremalnego zagrożenia. Oznacza aktywną strefę drenażową, gdzie fizyczna rzeczywistość ulega degradacji pod wpływem obcej woli.`,
+            egzorcyzm: isAnomaly 
+                ? `Procedura zamknięcia szczeliny: Otoczenie punktu potrójnym kręgiem z soli technicznej, naniesienie pieczęci wiążącej i zamknięcie wektora falami elektromagnetycznymi (klatka Faradaya/odcięcie pola).` 
+                : `Egzorcyzm bezwzględnej eksterminacji: Zastosowanie aktywnego rozkazu woli, całkowite odcięcie lęku (zagłodzenie bytu z pożywienia - loosh), wypędzenie za pomocą wyświęconego ostrza symbolicznego i pieczęci Heksagramu Unicursalnego.`,
+            svg: getSVG('demon', '#9e1a1a')
+        });
+    }
+
+    // BEZPIECZNA OBSŁUGA KAMERY Z WYKRYCIEM BRAKU WSPARCIA / PLIKU LOKALNEGO
+    const videoElement = document.getElementById('cameraStream');
+    const cameraErrorBox = document.getElementById('cameraError');
+    const scanBtn = document.getElementById('scanBtn');
+    const scannerStatus = document.getElementById('scannerStatus');
+
+    function handleCameraError(msg) {
+        cameraActive = false;
+        scanBtn.disabled = true;
+        videoElement.style.display = 'none';
+        cameraErrorBox.style.display = 'flex';
+        cameraErrorBox.innerText = "Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki";
+        scannerStatus.innerText = "BŁĄD: " + msg;
+    }
+
+    // Sprawdzenie czy navigator.mediaDevices i getUserMedia istnieją (ochrona przed file:// i brakiem HTTPS)
+    if (navigator && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                videoElement.srcObject = stream;
+                cameraActive = true;
+                scanBtn.disabled = false;
+                scannerStatus.innerText = "Status kamery: Aktywna. Skaner spektrograficzny gotowy.";
+            })
+            .catch(err => {
+                handleCameraError("Odrzucono uprawnienia lub brak sygnału z matrycy.");
+            });
+    } else {
+        handleCameraError("Brak wsparcia dla API mediastream (wymagany serwer lokalny / HTTPS lub środowisko blokuje dostęp).");
+    }
+
+    // FUNKCJA SKANOWANIA Z KAMERKI
+    function triggerCameraScan() {
+        if (!cameraActive) {
+            alert("Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki");
+            return;
+        }
+
+        scannerStatus.innerText = "Analiza optyczna klatki... Dopasowywanie wzorców anomalii...";
+        scanBtn.disabled = true;
+
+        setTimeout(() => {
+            const randomItem = database[Math.floor(Math.random() * database.length)];
+            scannerStatus.innerText = "Zidentyfikowano sygnaturę bytu w kadrze!";
+            scanBtn.disabled = false;
+            openModal(randomItem.id);
+        }, 1500);
+    }
+
+    // RENDEROWANIE SIATKI
+    const grid = document.getElementById('database-grid');
+    function renderCards(data) {
+        grid.innerHTML = data.slice(0, 50).map(item => `
+            <div class="card" onclick="openModal('${item.id}')" data-title="${item.nazwa.toLowerCase()}">
+                <div class="svg-container">${item.svg}</div>
+                <h3 style="color: ${item.kategoria.includes('Demon') || item.kategoria.includes('Anomalia') ? 'var(--accent-red)' : (item.kategoria.includes('Duch') ? 'var(--accent-blue)' : 'var(--accent-gold)')}">
+                    ${item.nazwa}
+                </h3>
+                <p>Typ: ${item.kategoria}</p>
+                <p>Siła: ${item.sila}/100</p>
+            </div>
+        `).join('');
+    }
+    renderCards(database);
+
+    // WYSZUKIWARKA
+    function filterDatabase() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            const title = card.getAttribute('data-title');
+            if(title.includes(query)) card.classList.remove('hidden');
+            else card.classList.add('hidden');
+        });
+    }
+
+    // MODAL
+    function openModal(id) {
+        const item = database.find(x => x.id === id);
+        if(!item) return;
+
+        document.getElementById('modal-title').innerText = item.nazwa;
+        document.getElementById('modal-type').innerText = item.kategoria;
+        document.getElementById('modal-power-text').innerText = item.sila;
+        document.getElementById('modal-desc').innerText = item.opis;
+        document.getElementById('modal-sign-meaning').innerText = item.znaczenie;
+        document.getElementById('modal-exorcism').innerText = item.egzorcyzm;
+        document.getElementById('modal-svg').innerHTML = item.svg;
+        
+        document.getElementById('infoModal').style.display = 'flex';
+        
+        setTimeout(() => {
+            const bar = document.getElementById('modal-power-bar');
+            bar.style.width = item.sila + '%';
+            bar.style.backgroundColor = item.sila > 80 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-gold)' : 'var(--accent-blue)');
+        }, 50);
+    }
+
+    function closeModal(e) {
+        if (e.target.id === 'infoModal') {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+    }
+</script>
+</body>
+</html>
