@@ -1,412 +1,886 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taktyczny Skaner Otoczenia i Historii Przeszłości</title>
-    <style>
-        :root {
-            --bg-color: #0b0b0f;
-            --text-main: #d1d1d1;
-            --accent-gold: #c5a059;
-            --accent-red: #9e1a1a;
-            --accent-blue: #4a6b8c;
-            --border-color: #2a2a35;
-            --card-bg: #15151e;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Courier New', Courier, monospace;
-            line-height: 1.5;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-        
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: var(--accent-gold); text-transform: uppercase; letter-spacing: 2px; font-size: 1.8em; }
-
-        .scanner-section {
-            background: var(--card-bg);
-            border: 2px solid var(--accent-gold);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .camera-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            height: 350px;
-            margin: 0 auto 15px auto;
-            background: #000;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .camera-error {
-            display: none;
-            position: absolute;
-            color: var(--accent-red);
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-            background: rgba(0,0,0,0.9);
-            width: 100%;
-            height: 100%;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            border: 2px solid var(--accent-red);
-            z-index: 10;
-        }
-        .scanner-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(197, 160, 89, 0.05) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-        }
-        .target-box {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 150px; height: 150px;
-            border: 2px dashed var(--accent-red);
-            pointer-events: none;
-        }
-
-        .btn {
-            background: var(--accent-gold);
-            color: #000;
-            border: none;
-            padding: 12px 25px;
-            font-size: 1em;
-            font-family: inherit;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: 0.2s;
-            text-transform: uppercase;
-        }
-        .btn:hover { background: #fff; box-shadow: 0 0 10px var(--accent-gold); }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
-
-        .search-box {
-            width: 100%;
-            padding: 12px;
-            font-size: 1em;
-            background: var(--card-bg);
-            border: 1px solid var(--accent-gold);
-            color: #fff;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-
-        .grid-wrapper {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 15px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .card:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
-        .card h3 { margin-top: 0; font-size: 1em; }
-        
-        .svg-container {
-            display: flex; justify-content: center; align-items: center;
-            height: 100px; background-color: #0d0d12; border: 1px solid #000; margin-bottom: 10px;
-        }
-        svg { width: 70px; height: 70px; }
-        
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: var(--card-bg); border: 2px solid var(--accent-red); border-radius: 8px;
-            width: 90%; max-width: 650px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto;
-            box-sizing: border-box;
-        }
-        .close-btn {
-            position: absolute; top: 15px; right: 20px; color: var(--accent-gold); font-size: 24px;
-            cursor: pointer; font-weight: bold; background: none; border: none;
-        }
-        .power-bar-container { background: #222; height: 12px; width: 100%; margin-top: 5px; border-radius: 3px; overflow: hidden; }
-        .power-bar { height: 100%; background: var(--accent-red); width: 0%; transition: width 0.5s; }
-        
-        .exorcism-box {
-            background: #1a0f0f;
-            border-left: 3px solid var(--accent-red);
-            padding: 12px;
-            margin-top: 15px;
-            font-size: 0.9em;
-        }
-        .sign-box {
-            background: #0f151a;
-            border-left: 3px solid var(--accent-blue);
-            padding: 12px;
-            margin-top: 15px;
-            font-size: 0.9em;
-        }
-        .hidden { display: none !important; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dziennik Terenowy — Ocena Zjawiska (System Operacyjny)</title>
+<style>
+  :root{
+    --ink: #10141c;
+    --ink-soft: #171c26;
+    --panel: #1c2230;
+    --panel-line: #2c3444;
+    --paper: #e9e4d6;
+    --paper-dim: #b9b3a0;
+    --amber: #c9903f;
+    --amber-soft: #e0ac5f;
+    --teal: #4c8a86;
+    --danger: #b3543f;
+    --ok: #5e8c61;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family: 'Source Serif Pro', Georgia, 'Iowan Old Style', serif;
+    min-height:100vh;
+    background-image:
+      radial-gradient(ellipse at 20% -10%, rgba(76,138,134,0.12), transparent 55%),
+      radial-gradient(ellipse at 90% 10%, rgba(201,144,63,0.08), transparent 45%);
+  }
+  .mono{
+    font-family: 'Space Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  header{
+    padding: 28px 20px 18px;
+    border-bottom: 1px solid var(--panel-line);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .eyebrow-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--paper-dim);
+    margin-bottom: 10px;
+  }
+  h1{
+    font-size: clamp(24px, 5vw, 32px);
+    font-weight: 600;
+    margin: 0 0 6px;
+    line-height: 1.15;
+    color: var(--paper);
+  }
+  .sub{
+    color: var(--paper-dim);
+    font-size: 15px;
+    max-width: 52ch;
+    line-height: 1.5;
+    margin: 0;
+  }
+  main{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  section{ margin-bottom: 26px; }
+  .field-label{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--amber-soft);
+    margin-bottom: 10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .field-label .num{ color: var(--paper-dim); }
+  .scan-panel{
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .viewfinder{
+    position: relative;
+    aspect-ratio: 4/3;
+    background: #060809;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .viewfinder video, .viewfinder canvas, .viewfinder img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .viewfinder canvas.snapshot, .viewfinder img.snapshot{
+    position:absolute;
+    top:0; left:0;
+  }
+  .vf-idle{
+    color: var(--paper-dim);
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    text-align:center;
+    padding: 20px;
+    line-height:1.6;
+  }
+  .vf-corner{position:absolute; width:14px; height:14px; pointer-events:none;}
+  .vf-corner.tl{top:14px; left:14px; border-top:1px solid var(--amber-soft); border-left:1px solid var(--amber-soft);}
+  .vf-corner.tr{top:14px; right:14px; border-top:1px solid var(--amber-soft); border-right:1px solid var(--amber-soft);}
+  .vf-corner.bl{bottom:14px; left:14px; border-bottom:1px solid var(--amber-soft); border-left:1px solid var(--amber-soft);}
+  .vf-corner.br{bottom:14px; right:14px; border-bottom:1px solid var(--amber-soft); border-right:1px solid var(--amber-soft);}
+  .scan-controls{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 12px 14px;
+    gap: 10px;
+    border-top: 1px solid var(--panel-line);
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+  }
+  .status-dot{
+    display:inline-block;
+    width:7px; height:7px;
+    border-radius:50%;
+    background: var(--paper-dim);
+    margin-right:7px;
+  }
+  .status-dot.live{ background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+  .status-dot.captured{ background: var(--amber-soft); box-shadow: 0 0 6px var(--amber-soft); }
+  button{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    border-radius: 3px;
+    border: 1px solid var(--panel-line);
+    background: transparent;
+    color: var(--paper);
+    padding: 9px 14px;
+    cursor:pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  button:hover{ border-color: var(--amber-soft); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+  button.primary{
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #1a1206;
+    font-weight:700;
+  }
+  button.primary:hover{ background: var(--amber-soft); border-color: var(--amber-soft); }
+  button.ghost{ color: var(--paper-dim); }
+  textarea{
+    width:100%;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+    color: var(--paper);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 14px;
+    resize: vertical;
+    min-height: 120px;
+  }
+  textarea:focus, button:focus-visible{
+    outline: 2px solid var(--amber-soft);
+    outline-offset: 1px;
+  }
+  textarea::placeholder{ color: var(--paper-dim); }
+  .checks{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chip{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    padding: 7px 11px;
+    border: 1px solid var(--panel-line);
+    border-radius: 999px;
+    color: var(--paper-dim);
+    cursor:pointer;
+    user-select:none;
+    transition: all 0.15s ease;
+  }
+  .chip.active{
+    border-color: var(--teal);
+    color: var(--paper);
+    background: rgba(76,138,134,0.15);
+  }
+  .analyze-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top: 18px;
+  }
+  .report{
+    border: 1px solid var(--panel-line);
+    background: linear-gradient(180deg, rgba(28,34,48,0.9), rgba(23,28,38,0.9));
+    border-radius: 4px;
+    padding: 22px;
+    display:none;
+  }
+  .report.show{ display:block; animation: reveal 0.4s ease; }
+  @keyframes reveal{
+    from{ opacity:0; transform: translateY(6px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  .report-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom: 1px solid var(--panel-line);
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .report-head .id{
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--paper-dim);
+  }
+  .verdict{
+    font-size: 22px;
+    font-weight: 600;
+    margin: 2px 0 4px;
+  }
+  .risk-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    white-space:nowrap;
+  }
+  .risk-0{ background: rgba(94,140,97,0.18); color:#8fbf92; border:1px solid rgba(94,140,97,0.4); }
+  .risk-1{ background: rgba(201,144,63,0.15); color:var(--amber-soft); border:1px solid rgba(201,144,63,0.4); }
+  .risk-2{ background: rgba(179,84,63,0.18); color:#d98b76; border:1px solid rgba(179,84,63,0.4); }
+  .risk-3{ background: rgba(179,84,63,0.3); color:#f0a08a; border:1px solid rgba(179,84,63,0.6); }
+  .report-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 460px){ .report-grid{ grid-template-columns: 1fr; } }
+  .stat{
+    background: rgba(0,0,0,0.18);
+    border: 1px solid var(--panel-line);
+    border-radius: 3px;
+    padding: 10px 12px;
+  }
+  .stat .k{
+    font-family:'Space Mono', monospace;
+    font-size: 10.5px;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .stat .v{ font-size: 15px; }
+  .report-section{ margin-bottom: 16px; }
+  .report-section h3{
+    font-family:'Space Mono', monospace;
+    font-size: 11.5px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px;
+    font-weight:400;
+  }
+  .report-section p{
+    margin:0;
+    line-height: 1.6;
+    color: var(--paper);
+    font-size: 15px;
+  }
+  .report-section ul{
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.7;
+  }
+  .disclaimer{
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 1px solid var(--panel-line);
+    font-family:'Space Mono', monospace;
+    font-size: 11.5px;
+    color: var(--paper-dim);
+    line-height: 1.7;
+  }
+  .log{ margin-top: 30px; }
+  .log-entry{
+    display:flex;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--panel-line);
+    font-size: 13.5px;
+    align-items: center;
+  }
+  .log-entry .l-left{ display:flex; flex-direction:column; gap:2px; }
+  .log-entry .l-when{ font-family:'Space Mono', monospace; font-size:10.5px; color:var(--paper-dim); }
+  .log-empty{ color: var(--paper-dim); font-size: 13.5px; padding: 14px 0; }
+  .log-actions{ display:flex; gap: 10px; margin-top: 10px; }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>Taktyczny Skaner Otoczenia</h1>
-        <p>Analiza Spektrograficzna, Ślady Przeszłości i Baza Egzorcyzmów</p>
-    </header>
+<header>
+  <div class="eyebrow-row">
+    <span>SYSTEM REJESTRACJI TERENOWEJ v2.4</span>
+    <span id="clock">— —:—</span>
+  </div>
+  <h1>Ocena obecności — Moduł Analityczny</h1>
+  <p class="sub">Wprowadź precyzyjny opis sytuacji, wykonaj realną dokumentację fotograficzną oraz zbierz metryki środowiskowe do walidacji zdarzenia[span_0](start_span)[span_0](end_span).</p>
+</header>
 
-    <div class="scanner-section">
-        <h2 style="color: var(--accent-gold); margin-top: 0;">Skaner Wizyjny Otoczenia</h2>
-        <div class="camera-container">
-            <video id="cameraStream" autoplay playsinline></video>
-            <canvas id="analysisCanvas" style="display:none;"></canvas>
-            <div id="cameraError" class="camera-error">
-                Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki
-            </div>
-            <div class="scanner-overlay"></div>
-            <div class="target-box"></div>
+<main>
+
+  <section>
+    <div class="field-label"><span class="num">01</span> Rejestrator wizyjny (Kamera)</div>
+    <div class="scan-panel">
+      <div class="viewfinder" id="viewfinder">
+        <div class="vf-idle" id="vfIdle">Moduł kamery w stanie spoczynku.<br>Kliknij „Inicjalizuj kamerę”, aby uzyskać surowy strumień obrazu.</div>
+        <video id="video" autoplay playsinline muted style="display:none;"></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <img id="snapshotImg" class="snapshot" style="display:none;" alt="Zapisany kadr">
+        <div class="vf-corner tl"></div>
+        <div class="vf-corner tr"></div>
+        <div class="vf-corner bl"></div>
+        <div class="vf-corner br"></div>
+      </div>
+      <div class="scan-controls">
+        <div><span class="status-dot" id="statusDot"></span><span id="statusText">System gotowy</span></div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="btnCamToggle">Inicjalizuj kamerę</button>
+          <button type="button" id="btnCapture" disabled>Wykonaj kadr</button>
+          <button type="button" id="btnRetake" style="display:none;">Reset kamery</button>
         </div>
-        <button id="scanBtn" class="btn" onclick="executeOpticalScan()" disabled>Inicjuj Skanowanie Otoczenia</button>
-        <p id="scannerStatus" style="margin-top: 10px; font-size: 0.9em; color: var(--accent-gold);">Status systemu: Inicjalizacja strumienia wideo...</p>
+      </div>
     </div>
+  </section>
 
-    <input type="text" id="searchInput" class="search-box" placeholder="Szukaj w bazie po nazwie lub śladzie..." onkeyup="filterDatabase()">
-    <div id="database-grid" class="grid-wrapper"></div>
-</div>
-
-<div class="modal-overlay" id="infoModal" onclick="closeModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <button class="close-btn" onclick="document.getElementById('infoModal').style.display='none'">&times;</button>
-        <div id="modal-svg" class="svg-container" style="height: 140px; border-color: var(--accent-gold);"></div>
-        <h2 id="modal-title" style="color: var(--accent-gold); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top:0;">Nazwa</h2>
-        <p><strong>Klasa Bytu / Zjawiska:</strong> <span id="modal-type"></span></p>
-        <p><strong>Poziom Zagrożenia:</strong> <span id="modal-power-text"></span>/100</p>
-        <div class="power-bar-container"><div id="modal-power-bar" class="power-bar"></div></div>
-        
-        <h3 style="margin-top: 15px; color:#fff;">Co tu się wcześniej odpierdoliło? (Analiza Śladu)</h3>
-        <p id="modal-desc"></p>
-        
-        <div class="sign-box">
-            <strong style="color: var(--accent-blue);">Co oznacza ten znak / manifestacja?</strong>
-            <p id="modal-sign-meaning" style="margin: 5px 0 0 0;"></p>
-        </div>
-
-        <div class="exorcism-box">
-            <strong style="color: var(--accent-red);">Protokół Egzorcyzmu i Eliminacji:</strong>
-            <p id="modal-exorcism" style="margin: 5px 0 0 0;"></p>
-        </div>
+  <section>
+    <div class="field-label"><span class="num">02</span> Dziennik zdarzeń (Opis sytuacji)</div>
+    <textarea id="description" placeholder="Wprowadź szczegółowy opis: sekwencja zdarzeń, parametry akustyczne, korelacje czasowe, reakcje otoczenia..."></textarea>
+    <div class="checks" id="chipRow">
+      <div class="chip" data-tag="chłód">nagły chłód</div>
+      <div class="chip" data-tag="dźwięki">niewyjaśnione dźwięki</div>
+      <div class="chip" data-tag="cienie">ruch / cienie</div>
+      <div class="chip" data-tag="elektryka">zakłócenia elektryczne</div>
+      <div class="chip" data-tag="zapach">nietypowy zapach</div>
+      <div class="chip" data-tag="zwierzęta">niepokój zwierząt</div>
+      <div class="chip" data-tag="sen">zaburzony sen / złe samopoczucie</div>
+      <div class="chip" data-tag="przedmioty">przedmioty zmieniają miejsce</div>
     </div>
-</div>
+  </section>
+
+  <section>
+    <div class="field-label"><span class="num">03</span> Geolokalizacja i Kontekst Środowiskowy</div>
+    <div class="scan-panel" style="padding:14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div class="mono" id="geoStatus" style="font-size:12.5px; color:var(--paper-dim);">Brak danych pozycji GPS</div>
+          <div class="mono" id="geoCoords" style="font-size:12.5px; color:var(--paper-dim); margin-top:4px;"></div>
+        </div>
+        <button type="button" id="btnLocate">Pobierz pozycję GPS</button>
+      </div>
+    </div>
+    <div class="field-label" style="margin-top:16px;"><span class="num"></span> Typ struktury terenu</div>
+    <div class="checks" id="placeRow">
+      <div class="chip" data-place="dom">dom prywatny</div>
+      <div class="chip" data-place="publiczne">miejsce publiczne</div>
+      <div class="chip" data-place="cmentarz">cmentarz / miejsce pochówku</div>
+      <div class="chip" data-place="szpital">szpital / dawny szpital lub hospicjum</div>
+      <div class="chip" data-place="kult">miejsce kultu religijnego</div>
+      <div class="chip" data-place="opuszczone">teren opuszczony / przemysłowy</div>
+      <div class="chip" data-place="inne">inne</div>
+    </div>
+  </section>
+
+  <div class="analyze-row">
+    <button type="button" id="btnExport" class="ghost" style="display:none;">Eksportuj bazę (JSON)</button>
+    <button type="button" class="primary" id="btnAnalyze">Generuj pełny raport analityczny</button>
+  </div>
+
+  <section style="margin-top: 24px;">
+    <div class="report" id="report">
+      <div class="report-head">
+        <div>
+          <div class="id" id="reportId">RAPORT #000</div>
+          <div class="verdict" id="verdict">—</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" id="btnSpeak" class="ghost" style="padding:5px 10px; font-size:11px;">Odsłuchaj syntezę</button>
+          <div class="risk-badge risk-0" id="riskBadge">Ryzyko: —</div>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <div class="stat">
+          <div class="k">Wskaźniki tekstowe</div>
+          <div class="v" id="statTags">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Analiza optyczna kadru</div>
+          <div class="v" id="statPhoto">Brak rejestracji</div>
+        </div>
+        <div class="stat">
+          <div class="k">Współrzędne GPS</div>
+          <div class="v" id="statLocation">Nieustalona</div>
+        </div>
+        <div class="stat">
+          <div class="k">Kategoria obiektu</div>
+          <div class="v" id="statPlace">Nieokreślony</div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>Synteza analityczna zdarzenia</h3>
+        <p id="explainText">—</p>
+      </div>
+
+      <div class="report-section">
+        <h3>Zalecane procedury następcze</h3>
+        <ul id="stepsList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="log">
+    <div class="field-label"><span class="num">04</span> Rejestr zapisanych spraw w pamięci lokalnej</div>
+    <div id="logList"><div class="log-empty">Brak wpisów w buforze lokalnym.</div></div>
+    <div class="log-actions">
+      <button type="button" class="ghost log-clear" id="btnClearLog" style="display:none;">Wyczyść bufor</button>
+    </div>
+  </section>
+
+  <div class="disclaimer">
+    Aplikacja przetwarza dane wyłącznie po stronie klienta (Client-Side). Współrzędne GPS oraz kadry wideo nie opuszczają urządzenia. Narzędzie służy do ustrukturyzowanej akwizycji danych obserwacyjnych[span_1](start_span)[span_1](end_span).
+  </div>
+
+</main>
 
 <script>
-    const database = [];
-    const getSVG = (type, color) => {
-        if(type === 'pentagram') return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="${color}" stroke-width="2"/><polygon points="50,5 64,40 98,40 70,62 80,95 50,75 20,95 30,62 2,40 36,40" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
-        if(type === 'ghost') return `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="20" ry="25" fill="none" stroke="${color}" stroke-width="2"/><path d="M 30,40 Q 30,80 50,90 Q 70,80 70,40" fill="none" stroke="${color}" stroke-width="2"/><circle cx="43" cy="35" r="3" fill="${color}"/><circle cx="57" cy="35" r="3" fill="${color}"/></svg>`;
-        return `<svg viewBox="0 0 100 100"><path d="M 10,50 Q 50,10 90,50 Q 50,90 10,50" fill="none" stroke="${color}" stroke-width="2"/><circle cx="50" cy="50" r="15" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
+(function(){
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const snapshotImg = document.getElementById('snapshotImg');
+  const vfIdle = document.getElementById('vfIdle');
+  const btnCamToggle = document.getElementById('btnCamToggle');
+  const btnCapture = document.getElementById('btnCapture');
+  const btnRetake = document.getElementById('btnRetake');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const clock = document.getElementById('clock');
+
+  let stream = null;
+  let hasSnapshot = false;
+  let photoReading = null;
+
+  function updateClock(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  async function startCamera(){
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio:false });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      vfIdle.style.display = 'none';
+      snapshotImg.style.display = 'none';
+      btnCapture.disabled = false;
+      btnCamToggle.textContent = 'Wyłącz kamerę';
+      statusDot.className = 'status-dot live';
+      statusText.textContent = 'Strumień aktywny';
+      hasSnapshot = false;
+      btnRetake.style.display = 'none';
+    }catch(err){
+      vfIdle.innerHTML = 'Błąd krytyczny dostępu do urządzenia wideo.<br>Sprawdź uprawnienia systemowe przeglądarki.';
+      statusText.textContent = 'Błąd inicjalizacji';
+    }
+  }
+
+  function stopCamera(){
+    if(stream){
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    video.style.display = 'none';
+    btnCamToggle.textContent = 'Inicjalizuj kamerę';
+    btnCapture.disabled = true;
+    statusDot.className = 'status-dot';
+    statusText.textContent = 'System gotowy';
+    if(!hasSnapshot){
+      vfIdle.style.display = 'flex';
+      vfIdle.innerHTML = 'Moduł kamery w stanie spoczynku.<br>Kliknij „Inicjalizuj kamerę”, aby uzyskać surowy strumień obrazu.';
+    }
+  }
+
+  btnCamToggle.addEventListener('click', () => {
+    if(stream){ stopCamera(); } else { startCamera(); }
+  });
+
+  btnCapture.addEventListener('click', () => {
+    if(!stream) return;
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    snapshotImg.src = canvas.toDataURL('image/jpeg', 0.90);
+    snapshotImg.style.display = 'block';
+    video.style.display = 'none';
+
+    // Rzeczywista analiza histogramu pikseli surowego bufora canvas
+    try{
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      let rSum = 0, gSum = 0, bSum = 0, darkPixels = 0;
+      const totalPixels = data.length / 4;
+
+      for(let i = 0; i < data.length; i += 4){
+        const r = data[i], g = data[i+1], b = data[i+2];
+        rSum += r; gSum += g; bSum += b;
+        const lum = 0.299*r + 0.587*g + 0.114*b;
+        if(lum < 35) darkPixels++;
+      }
+
+      const avgR = rSum / totalPixels;
+      const avgG = gSum / totalPixels;
+      const avgB = bSum / totalPixels;
+      const brightness = Math.round((avgR + avgG + avgB) / 3);
+      const shadowRatio = Number((darkPixels / totalPixels).toFixed(2));
+
+      let profile = 'zbalansowany';
+      if(shadowRatio > 0.6) profile = 'wysoka ekspozycja cieni (niedświetlony)';
+      else if(avgB > avgR + 15) profile = 'dominacja widma chłodnego';
+      else if(avgR > avgB + 15) profile = 'dominacja widma ciepłego';
+
+      photoReading = { brightness, shadowRatio, profile };
+    }catch(e){
+      photoReading = { brightness: 0, shadowRatio: 0, profile: 'błąd odczytu bufora' };
+    }
+
+    hasSnapshot = true;
+    if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    btnCapture.disabled = true;
+    btnCamToggle.style.display = 'none';
+    btnRetake.style.display = 'inline-block';
+    statusDot.className = 'status-dot captured';
+    statusText.textContent = 'Kadr zabezpieczony';
+  });
+
+  btnRetake.addEventListener('click', () => {
+    hasSnapshot = false;
+    photoReading = null;
+    snapshotImg.style.display = 'none';
+    btnCamToggle.style.display = 'inline-block';
+    btnRetake.style.display = 'none';
+    statusDot.className = 'status-dot';
+    statusText.textContent = 'System gotowy';
+    vfIdle.style.display = 'flex';
+    startCamera();
+  });
+
+  const chipRow = document.getElementById('chipRow');
+  const activeTags = new Set();
+  chipRow.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.tag;
+      if(activeTags.has(tag)){ activeTags.delete(tag); chip.classList.remove('active'); }
+      else { activeTags.add(tag); chip.classList.add('active'); }
+    });
+  });
+
+  const btnLocate = document.getElementById('btnLocate');
+  const geoStatus = document.getElementById('geoStatus');
+  const geoCoords = document.getElementById('geoCoords');
+  let locationData = null;
+
+  btnLocate.addEventListener('click', () => {
+    if(!('geolocation' in navigator)){
+      geoStatus.textContent = 'Geolokalizacja niedostępna w tej przeglądarce.';
+      return;
+    }
+    geoStatus.textContent = 'Pobieranie pozycji GPS...';
+    btnLocate.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        locationData = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy)
+        };
+        geoStatus.textContent = 'Pozycja GPS zweryfikowana (bufor lokalny)';
+        geoCoords.textContent = `N/S: ${locationData.lat.toFixed(6)}, E/W: ${locationData.lng.toFixed(6)} (±${locationData.accuracy}m)`;
+        btnLocate.disabled = false;
+        btnLocate.textContent = 'Odśwież GPS';
+      },
+      (err) => {
+        geoStatus.textContent = 'Błąd pozyskania pozycji GPS (odmowa dostępu lub timeout).';
+        btnLocate.disabled = false;
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  });
+
+  const placeRow = document.getElementById('placeRow');
+  let selectedPlace = null;
+  const PLACE_LABELS = {
+    dom: 'dom prywatny',
+    publiczne: 'miejsce publiczne',
+    cmentarz: 'cmentarz / miejsce pochówku',
+    szpital: 'szpital / dawny szpital lub hospicjum',
+    kult: 'miejsce kultu religijnego',
+    opuszczone: 'teren opuszczony / przemysłowy',
+    inne: 'inne'
+  };
+  const PLACE_GUIDANCE = {
+    dom: 'Zweryfikuj stan instalacji domowych, wentylacji grawitacyjnej oraz czynniki środowiskowe wpływające na domowników.',
+    publiczne: 'Dokonaj korelacji danych z niezależnymi świadkami przebywającymi w tym samym sektorze.',
+    cmentarz: 'Bezwzględnie przestrzegaj nienaruszalności struktury terenu i obiektów architektonicznych.',
+    szpital: 'Przeanalizuj uwarunkowania historyczno-architektoniczne obiektu w oficjalnych rejestrach.',
+    kult: 'Wszelkie czynności konsultuj bezpośrednio z wyznaczonym administratorem lub dysponentem miejsca.',
+    opuszczone: 'Ryzyko strukturalne budowlane i biologiczne — bezwzględnie stosuj procedury BHP.',
+    inne: 'Udokumentuj specyfikę obiektu w dodatkowym protokole opisowym.'
+  };
+
+  placeRow.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const isActive = chip.classList.contains('active');
+      placeRow.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      if(!isActive){
+        chip.classList.add('active');
+        selectedPlace = chip.dataset.place;
+      } else {
+        selectedPlace = null;
+      }
+    });
+  });
+
+  const KEYWORDS = {
+    'chłód': ['zimn','chłod','mróz','lodowat'],
+    'dźwięki': ['pukani','krok','szept','głos','skrzyp','stuk'],
+    'cienie': ['cień','cienie','sylwet','mgł','migot','błys'],
+    'elektryka': ['zakłóc','bateri','światł','elektry','miga'],
+    'zapach': ['zapach','smród','siark','spalenizn'],
+    'zwierzęta': ['pies','kot','zwierz','szczek','warcz'],
+    'sen': ['sen','koszmar','bezsenn','samopoczuci','lęk','niepokój'],
+    'przedmioty': ['przedmiot','znika','przesuni','spada','otwiera']
+  };
+
+  function detectTagsFromText(text){
+    const lower = text.toLowerCase();
+    const found = new Set();
+    Object.entries(KEYWORDS).forEach(([tag, stems]) => {
+      if(stems.some(s => lower.includes(s))) found.add(tag);
+    });
+    return found;
+  }
+
+  const TAG_LABELS = {
+    'chłód':'nagły chłód','dźwięki':'dźwięki','cienie':'ruch / cienie',
+    'elektryka':'zakłócenia elektryczne','zapach':'zapach','zwierzęta':'niepokój zwierząt',
+    'sen':'sen / samopoczucie','przedmioty':'przedmioty w ruchu'
+  };
+
+  const report = document.getElementById('report');
+  const reportId = document.getElementById('reportId');
+  const verdict = document.getElementById('verdict');
+  const riskBadge = document.getElementById('riskBadge');
+  const statTags = document.getElementById('statTags');
+  const statPhoto = document.getElementById('statPhoto');
+  const statLocation = document.getElementById('statLocation');
+  const statPlace = document.getElementById('statPlace');
+  const explainText = document.getElementById('explainText');
+  const stepsList = document.getElementById('stepsList');
+  const description = document.getElementById('description');
+  const btnExport = document.getElementById('btnExport');
+
+  const LEVELS = [
+    {
+      name: 'Status stabilny (brak odchyłek)',
+      risk: 'risk-0',
+      riskLabel: 'niska',
+      explain: 'Zarejestrowane parametry mieszczą się w normach środowiskowych. Zdarzenia mogą wynikać ze zwyczajnych czynników fizycznych (mikroklimat, akustyka budynku).',
+      steps: [
+        'Zarchiwizuj wpis w dzienniku systemowym.',
+        'Przeprowadź rutynową kontrolę instalacji technicznych.',
+        'Monitoruj powtarzalność warunków w cyklu 24-godzinnym.'
+      ]
+    },
+    {
+      name: 'Pojedyncza anomalia wskaźnikowa',
+      risk: 'risk-1',
+      riskLabel: 'umiarkowana',
+      explain: 'Wykryto pojedyncze odstępstwo od normy o niezweryfikowanej etiologii. Wskazane wdrożenie systematycznego monitoringu.',
+      steps: [
+        'Prowadź ciągły rejestr czasu i okoliczności występowania zdarzeń.',
+        'Skorelowane dane skonfrontuj z obserwacjami otoczenia.',
+        'Zapewnij wsparcie komunikacyjne osobom w strefie zdarzenia.'
+      ]
+    },
+    {
+      name: 'Korelacja wielopunktowa',
+      risk: 'risk-2',
+      riskLabel: 'podwyższona',
+      explain: 'Zauważalny powtarzalny wzorzec łączący kilka niezależnych czynników fizycznych. Sytuacja wymaga formalnej analizy eksperckiej.',
+      steps: [
+        'Przekaż skonsolidowany raport wykwalifikowanemu specjaliście.',
+        'Zaniechaj samodzielnych prób ingerencji w strukturę miejsca.',
+        'Utrzymuj rzetelną dokumentację faktograficzną bez spekulacji.'
+      ]
+    },
+    {
+      name: 'Krytyczne nagromadzenie wskaźników',
+      risk: 'risk-3',
+      riskLabel: 'wysoka',
+      explain: 'Wysokie natężenie skorelowanych sygnałów w wielu kategoriach jednoczasowo. Sytuacja priorytetowa wymagająca natychmiastowych działań.',
+      steps: [
+        'Skontaktuj się niezwłocznie z odpowiednimi służbami lub autorytetem dziedzinowym.',
+        'W przypadku wystąpienia zagrożenia bezpieczeństwa psychicznego lub fizycznego priorytetowo zadbaj o ewakuację ze strefy.',
+        'Zachowaj bezwzględny obiektywizm w dokumentacji zdarzeń.'
+      ]
+    }
+  ];
+
+  let caseCounter = 1;
+
+  function loadLog(){
+    try{
+      const raw = localStorage.getItem('system_terenowy_db');
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveLog(entries){
+    try{ localStorage.setItem('system_terenowy_db', JSON.stringify(entries)); }catch(e){}
+  }
+  function renderLog(){
+    const entries = loadLog();
+    const logList = document.getElementById('logList');
+    const btnClearLog = document.getElementById('btnClearLog');
+    if(entries.length === 0){
+      logList.innerHTML = '<div class="log-empty">Brak wpisów w buforze lokalnym.</div>';
+      btnClearLog.style.display = 'none';
+      btnExport.style.display = 'none';
+      return;
+    }
+    btnClearLog.style.display = 'inline-block';
+    btnExport.style.display = 'inline-block';
+    logList.innerHTML = entries.slice().reverse().map((e, idx) => `
+      <div class="log-entry">
+        <div class="l-left">
+          <div><strong>${e.reportId}</strong>: ${e.name}</div>
+          <div class="l-when">${e.when} | GPS: ${e.hasGps ? 'Tak' : 'Nie'} | Foto: ${e.hasPhoto ? 'Tak' : 'Nie'}</div>
+        </div>
+        <div class="risk-badge ${e.riskClass}" style="font-size:11px;">${e.riskLabel}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('btnClearLog').addEventListener('click', () => {
+    if(confirm('Czy na pewno chcesz wyczyścić lokalną bazę wpisów?')){
+      saveLog([]);
+      renderLog();
+    }
+  });
+
+  btnExport.addEventListener('click', () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loadLog(), null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `dziennik_terenowy_export_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  });
+
+  renderLog();
+
+  document.getElementById('btnAnalyze').addEventListener('click', () => {
+    const text = description.value.trim();
+    const textTags = detectTagsFromText(text);
+    const allTags = new Set([...textTags, ...activeTags]);
+
+    let score = allTags.size;
+    if(photoReading){
+      if(photoReading.shadowRatio > 0.5) score += 1;
+      if(photoReading.brightness < 40) score += 1;
+    }
+    if(selectedPlace && ['cmentarz','szpital','opuszczone'].includes(selectedPlace)){
+      score += 0.75;
+    }
+
+    let levelIdx = 0;
+    if(score >= 5) levelIdx = 3;
+    else if(score >= 3) levelIdx = 2;
+    else if(score >= 1) levelIdx = 1;
+    else levelIdx = 0;
+
+    const level = LEVELS[levelIdx];
+    const currentReportId = `RAPORT #${String(caseCounter).padStart(3,'0')}`;
+
+    reportId.textContent = `${currentReportId} — Data: ${new Date().toLocaleDateString('pl-PL')}`;
+    verdict.textContent = level.name;
+    riskBadge.className = `risk-badge ${level.risk}`;
+    riskBadge.textContent = `Ryzyko: ${level.riskLabel}`;
+
+    statTags.textContent = allTags.size > 0
+      ? [...allTags].map(t => TAG_LABELS[t] || t).join(', ')
+      : 'brak kryteriów wskaźnikowych';
+
+    statPhoto.textContent = photoReading
+      ? `Jasność: ${photoReading.brightness}/255, Cienie: ${Math.round(photoReading.shadowRatio*100)}%`
+      : 'Brak rejestracji wideo';
+
+    statLocation.textContent = locationData
+      ? `${locationData.lat.toFixed(4)}, ${locationData.lng.toFixed(4)}`
+      : 'Nieustalona';
+
+    statPlace.textContent = selectedPlace ? PLACE_LABELS[selectedPlace] : 'Nieokreślony';
+
+    explainText.textContent = level.explain;
+    const steps = [...level.steps];
+    if(selectedPlace && PLACE_GUIDANCE[selectedPlace]){ 
+      steps.push(PLACE_GUIDANCE[selectedPlace]); 
+    }
+    stepsList.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+
+    report.classList.add('show');
+    report.scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+    const entryData = {
+      reportId: currentReportId,
+      name: level.name,
+      riskClass: level.risk,
+      riskLabel: level.riskLabel,
+      when: new Date().toLocaleString('pl-PL'),
+      hasGps: !!locationData,
+      hasPhoto: !!photoReading,
+      descriptionSnippet: text.substring(0, 80)
     };
 
-    // Budowa obszernej bazy danych
-    for(let i = 1; i <= 100; i++) {
-        database.push({
-            id: 'p' + i, kategoria: 'Geometria / Znak Zabezpieczający',
-            nazwa: `Matryca Ochronna Model #${i}`,
-            sila: 20 + (i % 60),
-            opis: `W tym miejscu przeprowadzono próbę zakotwiczenia energii lub zabezpieczenia przestrzeni przed infiltracją.`,
-            znaczenie: `Teren był celowo porządkowany lub zamykany przed napływem niższych częstotliwości.`,
-            egzorcyzm: `Oczyszczenie solą, nakreślenie linii odwrotnej i postawienie nowego heksagramu wiążącego.`,
-            svg: getSVG('pentagram', '#c5a059')
-        });
+    const entries = loadLog();
+    entries.push(entryData);
+    saveLog(entries);
+    caseCounter++;
+    renderLog();
+  });
+
+  // Synteza mowy (Text-to-Speech API przeglądarki)
+  document.getElementById('btnSpeak').addEventListener('click', () => {
+    if(!('speechSynthesis' in window)){
+      alert('Przeglądarka nie obsługuje syntezy mowy.');
+      return;
     }
-    for(let i = 1; i <= 150; i++) {
-        database.push({
-            id: 'g' + i, kategoria: 'Duch / Byt Niefizyczny (Reaktywny)',
-            nazwa: `Echo Emocjonalne [Manifestacja #${i}]`,
-            sila: 30 + (i % 50),
-            opis: `Doszło tu do gwałtownego wydarzenia emocjonalnego, którego ślad zakotwiczył się w strukturze ścian i posadzki.`,
-            znaczenie: `Ślad termiczny i kinetyczny – byt próbuje wymusić uwagę otoczenia.`,
-            egzorcyzm: `Zastosowanie rezonansu dźwiękowego (kamerton), odczytanie formuły odcięcia emocjonalnego.`,
-            svg: getSVG('ghost', '#4a6b8c')
-        });
-    }
-    for(let i = 1; i <= 200; i++) {
-        database.push({
-            id: 'd' + i, kategoria: 'Demon Wysokiego Zagrożenia / Anomalia',
-            nazwa: `Pasożyt Wymiaru Niższego (ID: 0x${(100000 + i).toString(16)})`,
-            sila: 75 + (i % 25),
-            opis: `Strefa zdeklarowanego drenażu energii. Ofiara w tym rejonie doświadcza paniki, myśli rezygnacyjnych i ciężkiego osłabienia.`,
-            znaczenie: `Sygnatura ekstremalnego zagrożenia. Fizyczna rzeczywistość ulega degradacji pod wpływem obcej woli.`,
-            egzorcyzm: `Całkowite odcięcie lęku (zagłodzenie bytu), wypędzenie wyświęconym ostrzem i pieczęcią Heksagramu Unicursalnego.`,
-            svg: getSVG('demon', '#9e1a1a')
-        });
-    }
+    window.speechSynthesis.cancel();
+    const textToSpeak = `Werdykt systemu: ${verdict.textContent}. ${explainText.textContent}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'pl-PL';
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+  });
 
-    const videoElement = document.getElementById('cameraStream');
-    const cameraErrorBox = document.getElementById('cameraError');
-    const scanBtn = document.getElementById('scanBtn');
-    const scannerStatus = document.getElementById('scannerStatus');
-    const canvas = document.getElementById('analysisCanvas');
-    const ctx = canvas.getContext('2d');
-
-    let cameraActive = false;
-
-    function handleCameraError() {
-        cameraActive = false;
-        scanBtn.disabled = true;
-        videoElement.style.display = 'none';
-        cameraErrorBox.style.display = 'flex';
-        cameraErrorBox.innerText = "Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki";
-        scannerStatus.innerText = "BŁĄD: Brak dostępu do strumienia wizyjnego.";
-    }
-
-    if (navigator && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(stream => {
-                videoElement.srcObject = stream;
-                cameraActive = true;
-                scanBtn.disabled = false;
-                scannerStatus.innerText = "Status kamery: Aktywna. Skaner optyczny gotowy do analizy.";
-            })
-            .catch(err => { handleCameraError(); });
-    } else {
-        handleCameraError();
-    }
-
-    // REALNA ANALIZA PIKSELIZACJI I PARAMETRÓW OBRAZU Z KAMERY
-    function executeOpticalScan() {
-        if (!cameraActive) {
-            alert("Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki");
-            return;
-        }
-
-        scannerStatus.innerText = "Analiza matrycy optycznej i struktury otoczenia...";
-        scanBtn.disabled = true;
-
-        // Przechwycenie klatki wideo do analizy
-        canvas.width = videoElement.videoWidth || 300;
-        canvas.height = videoElement.videoHeight || 300;
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-        // Pobranie próby pikseli z centralnego punktu celownika
-        const frameData = ctx.getImageData(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
-        const pixels = frameData.data;
-        
-        let rSum = 0, gSum = 0, bSum = 0, brightnessSum = 0;
-        const len = pixels.length;
-
-        for (let i = 0; i < len; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i+1];
-            const b = pixels[i+2];
-            rSum += r;
-            gSum += g;
-            bSum += b;
-            brightnessSum += (r + g + b) / 3;
-        }
-
-        const totalPixels = len / 4;
-        const avgR = rSum / totalPixels;
-        const avgG = gSum / totalPixels;
-        const avgB = bSum / totalPixels;
-        const avgBrightness = brightnessSum / totalPixels;
-
-        setTimeout(() => {
-            // Algorytm dopasowania na podstawie rzeczywistego odczytu matrycy
-            let selectedItem;
-            
-            if (avgBrightness < 45) {
-                // Ciemne otoczenie (np. piwnica, noc, zacieniona posadzka) -> wysokie zagrożenie / demon
-                const demons = database.filter(x => x.sila >= 75);
-                selectedItem = demons[Math.floor(avgR + avgB) % demons.length];
-            } else if (avgR > avgG && avgR > avgB) {
-                // Dominacja czerwieni/ciepłych tonów -> ślady emocjonalne
-                const ghosts = database.filter(x => x.sila >= 30 && x.sila < 75);
-                selectedItem = ghosts[Math.floor(avgG) % ghosts.length];
-            } else {
-                // Jasne lub neutralne otoczenie -> matryce ochronne lub lżejsze echa
-                const pentacles = database.filter(x => x.sila < 50);
-                selectedItem = pentacles[Math.floor(avgBrightness) % pentacles.length];
-            }
-
-            scannerStatus.innerText = `Zanalizowano otoczenie (Jasność: ${Math.round(avgBrightness)}, RGB: ${Math.round(avgR)},${Math.round(avgG)},${Math.round(avgB)})`;
-            scanBtn.disabled = false;
-            openModal(selectedItem.id);
-        }, 1200);
-    }
-
-    const grid = document.getElementById('database-grid');
-    function renderCards(data) {
-        grid.innerHTML = data.slice(0, 30).map(item => `
-            <div class="card" onclick="openModal('${item.id}')" data-title="${item.nazwa.toLowerCase()}">
-                <div class="svg-container">${item.svg}</div>
-                <h3 style="color: ${item.sila > 75 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-blue)' : 'var(--accent-gold)')}">${item.nazwa}</h3>
-                <p>Typ: ${item.kategoria}</p>
-                <p>Siła: ${item.sila}/100</p>
-            </div>
-        `).join('');
-    }
-    renderCards(database);
-
-    function filterDatabase() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll('.card').forEach(card => {
-            if(card.getAttribute('data-title').includes(query)) card.classList.remove('hidden');
-            else card.classList.add('hidden');
-        });
-    }
-
-    function openModal(id) {
-        const item = database.find(x => x.id === id);
-        if(!item) return;
-
-        document.getElementById('modal-title').innerText = item.nazwa;
-        document.getElementById('modal-type').innerText = item.kategoria;
-        document.getElementById('modal-power-text').innerText = item.sila;
-        document.getElementById('modal-desc').innerText = item.opis;
-        document.getElementById('modal-sign-meaning').innerText = item.znaczenie;
-        document.getElementById('modal-exorcism').innerText = item.egzorcyzm;
-        document.getElementById('modal-svg').innerHTML = item.svg;
-        
-        document.getElementById('infoModal').style.display = 'flex';
-        
-        setTimeout(() => {
-            const bar = document.getElementById('modal-power-bar');
-            bar.style.width = item.sila + '%';
-            bar.style.backgroundColor = item.sila > 75 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-blue)' : 'var(--accent-gold)');
-        }, 50);
-    }
-
-    function closeModal(e) {
-        if (e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none';
-    }
+})();
 </script>
+
 </body>
 </html>
-
