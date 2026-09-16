@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taktyczny Skaner i Podręcznik Egzorcysty.v.1</title>
+    <title>Taktyczny Skaner Otoczenia i Historii Przeszłości</title>
     <style>
         :root {
             --bg-color: #0b0b0f;
@@ -29,7 +29,6 @@
         header { text-align: center; margin-bottom: 20px; }
         h1 { color: var(--accent-gold); text-transform: uppercase; letter-spacing: 2px; font-size: 1.8em; }
 
-        /* Skaner kamerki */
         .scanner-section {
             background: var(--card-bg);
             border: 2px solid var(--accent-gold);
@@ -142,7 +141,6 @@
         }
         svg { width: 70px; height: 70px; }
         
-        /* Modal wyników i egzorcyzmów */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
@@ -180,32 +178,29 @@
 
 <div class="container">
     <header>
-        <h1>Taktyczny System Skanowania i Egzorcyzmów</h1>
-        <p>Inwentarz Zagrożeń Nieofizycznych i Analiza Śladów Przeszłości</p>
+        <h1>Taktyczny Skaner Otoczenia</h1>
+        <p>Analiza Spektrograficzna, Ślady Przeszłości i Baza Egzorcyzmów</p>
     </header>
 
-    <!-- SEKCYJNY SKANER KAMERKI -->
     <div class="scanner-section">
         <h2 style="color: var(--accent-gold); margin-top: 0;">Skaner Wizyjny Otoczenia</h2>
         <div class="camera-container">
             <video id="cameraStream" autoplay playsinline></video>
+            <canvas id="analysisCanvas" style="display:none;"></canvas>
             <div id="cameraError" class="camera-error">
                 Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki
             </div>
             <div class="scanner-overlay"></div>
             <div class="target-box"></div>
         </div>
-        <button id="scanBtn" class="btn" onclick="triggerCameraScan()" disabled>Inicjuj Skanowanie Sygnatury</button>
+        <button id="scanBtn" class="btn" onclick="executeOpticalScan()" disabled>Inicjuj Skanowanie Otoczenia</button>
         <p id="scannerStatus" style="margin-top: 10px; font-size: 0.9em; color: var(--accent-gold);">Status systemu: Inicjalizacja strumienia wideo...</p>
     </div>
 
-    <!-- WYSZUKIWARKA -->
-    <input type="text" id="searchInput" class="search-box" placeholder="Szukaj w bazie po nazwie lub śladzie (np. 'Poltergeist', 'Wyrwa', 'Pentakl')..." onkeyup="filterDatabase()">
-
+    <input type="text" id="searchInput" class="search-box" placeholder="Szukaj w bazie po nazwie lub śladzie..." onkeyup="filterDatabase()">
     <div id="database-grid" class="grid-wrapper"></div>
 </div>
 
-<!-- Modal Wyników Taktycznych -->
 <div class="modal-overlay" id="infoModal" onclick="closeModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="document.getElementById('infoModal').style.display='none'">&times;</button>
@@ -224,7 +219,7 @@
         </div>
 
         <div class="exorcism-box">
-            <strong style="color: var(--accent-red);">Protokół Egzorcyzmu i Eliminacji (Bezwzględne usunięcie):</strong>
+            <strong style="color: var(--accent-red);">Protokół Egzorcyzmu i Eliminacji:</strong>
             <p id="modal-exorcism" style="margin: 5px 0 0 0;"></p>
         </div>
     </div>
@@ -232,121 +227,146 @@
 
 <script>
     const database = [];
-    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-    
-    let cameraActive = false;
-
     const getSVG = (type, color) => {
         if(type === 'pentagram') return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="${color}" stroke-width="2"/><polygon points="50,5 64,40 98,40 70,62 80,95 50,75 20,95 30,62 2,40 36,40" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
         if(type === 'ghost') return `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="20" ry="25" fill="none" stroke="${color}" stroke-width="2"/><path d="M 30,40 Q 30,80 50,90 Q 70,80 70,40" fill="none" stroke="${color}" stroke-width="2"/><circle cx="43" cy="35" r="3" fill="${color}"/><circle cx="57" cy="35" r="3" fill="${color}"/></svg>`;
         return `<svg viewBox="0 0 100 100"><path d="M 10,50 Q 50,10 90,50 Q 50,90 10,50" fill="none" stroke="${color}" stroke-width="2"/><circle cx="50" cy="50" r="15" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
     };
 
-    // GENEROWANIE BAZY DANYCH ZE SPECYFIKACJĄ EGZORCYZMÓW I ZNAKÓW
-    const p_prefixes = ["Pentakl", "Heksagram", "Pieczęć", "Znak Ochronny", "Matryca"];
-    const p_suffixes = ["Światła", "Wiązania", "Odpychania", "Równowagi", "Pustki"];
+    // Budowa obszernej bazy danych
     for(let i = 1; i <= 100; i++) {
         database.push({
             id: 'p' + i, kategoria: 'Geometria / Znak Zabezpieczający',
-            nazwa: `${rand(p_prefixes)} ${rand(p_suffixes)} (Model #${i})`,
-            sila: randInt(10, 85),
-            opis: `W tym miejscu przeprowadzono nieautoryzowaną próbę zakotwiczenia energii lub zabezpieczenia przestrzeni przed infiltracją z zewnątrz.`,
-            znaczenie: `Obecność tego znaku oznacza, że teren był celowo porządkowany lub zamykany przed napływem niższych częstotliwości.`,
-            egzorcyzm: `Egzorcyzm aktywacyjny: Oczyszczenie solą, nakreślenie linii odwrotnej w celu dezaktywacji przestarzałej matrycy i postawienie nowego, czystego heksagramu wiążącego.`,
+            nazwa: `Matryca Ochronna Model #${i}`,
+            sila: 20 + (i % 60),
+            opis: `W tym miejscu przeprowadzono próbę zakotwiczenia energii lub zabezpieczenia przestrzeni przed infiltracją.`,
+            znaczenie: `Teren był celowo porządkowany lub zamykany przed napływem niższych częstotliwości.`,
+            egzorcyzm: `Oczyszczenie solą, nakreślenie linii odwrotnej i postawienie nowego heksagramu wiążącego.`,
             svg: getSVG('pentagram', '#c5a059')
         });
     }
-
-    const g_prefixes = ["Zjawa", "Poltergeist", "Echo", "Kolekcjoner", "Widmo"];
-    const g_motives = ["Korytarza", "Piwnicy", "Żalu", "Gniewu", "Rozpaczy"];
-    for(let i = 1; i <= 200; i++) {
+    for(let i = 1; i <= 150; i++) {
         database.push({
             id: 'g' + i, kategoria: 'Duch / Byt Niefizyczny (Reaktywny)',
-            nazwa: `${rand(g_prefixes)} ${rand(g_motives)} [Manifestacja #${i}]`,
-            sila: randInt(15, 60),
-            opis: `Doszło tu do gwałtownego wydarzenia emocjonalnego lub nagłego zgonu, którego ślad energetyczny zakotwiczył się w strukturze ścian i posadzki.`,
-            znaczenie: `Ślad termiczny i kinetyczny – byt próbuje wymusić uwagę otoczenia poprzez manipulowanie przedmiotami i generowanie niskich temperatur.`,
-            egzorcyzm: `Egzorcyzm zerwania więzi i odesłania: Zastosowanie rezonansu dźwiękowego o wysokiej częstotliwości (np. dzwon/kamerton), odczytanie formuły odcięcia emocjonalnego i całkowite zamknięcie portalu pamięci lokalnej.`,
+            nazwa: `Echo Emocjonalne [Manifestacja #${i}]`,
+            sila: 30 + (i % 50),
+            opis: `Doszło tu do gwałtownego wydarzenia emocjonalnego, którego ślad zakotwiczył się w strukturze ścian i posadzki.`,
+            znaczenie: `Ślad termiczny i kinetyczny – byt próbuje wymusić uwagę otoczenia.`,
+            egzorcyzm: `Zastosowanie rezonansu dźwiękowego (kamerton), odczytanie formuły odcięcia emocjonalnego.`,
             svg: getSVG('ghost', '#4a6b8c')
         });
     }
-
-    const d_prefixes = ["Szczelina", "Demon", "Pasożyt", "Anomalia", "Wyrwa Przestrzenna"];
-    const d_suffixes = ["Klasy X", "Typu Cień", "Wymiaru Niższego", "Entropii", "Żywiąca się Strachem"];
-    for(let i = 1; i <= 400; i++) {
-        let isAnomaly = Math.random() > 0.5;
+    for(let i = 1; i <= 200; i++) {
         database.push({
-            id: 'd' + i, kategoria: isAnomaly ? 'Anomalia Przestrzenna' : 'Demon Wysokiego Zagrożenia',
-            nazwa: `${rand(d_prefixes)} ${rand(d_suffixes)} (ID: 0x${Math.floor(Math.random()*16777215).toString(16)})`,
-            sila: randInt(70, 100),
-            opis: isAnomaly ? `Przeprowadzono tu mroczny rytuał otwarcie przejścia, co doprowadziło do rozszczelnienia lokalnej osłony czasoprzestrzennej.` : `Byt żerujący na panice. Ofiara w tym rejonie doświadczała paraliżu sennego, myśli rezygnacyjnych i gwałtownego drenażu energii życiowej.`,
-            znaczenie: `Sygnatura ekstremalnego zagrożenia. Oznacza aktywną strefę drenażową, gdzie fizyczna rzeczywistość ulega degradacji pod wpływem obcej woli.`,
-            egzorcyzm: isAnomaly 
-                ? `Procedura zamknięcia szczeliny: Otoczenie punktu potrójnym kręgiem z soli technicznej, naniesienie pieczęci wiążącej i zamknięcie wektora falami elektromagnetycznymi (klatka Faradaya/odcięcie pola).` 
-                : `Egzorcyzm bezwzględnej eksterminacji: Zastosowanie aktywnego rozkazu woli, całkowite odcięcie lęku (zagłodzenie bytu z pożywienia - loosh), wypędzenie za pomocą wyświęconego ostrza symbolicznego i pieczęci Heksagramu Unicursalnego.`,
+            id: 'd' + i, kategoria: 'Demon Wysokiego Zagrożenia / Anomalia',
+            nazwa: `Pasożyt Wymiaru Niższego (ID: 0x${(100000 + i).toString(16)})`,
+            sila: 75 + (i % 25),
+            opis: `Strefa zdeklarowanego drenażu energii. Ofiara w tym rejonie doświadcza paniki, myśli rezygnacyjnych i ciężkiego osłabienia.`,
+            znaczenie: `Sygnatura ekstremalnego zagrożenia. Fizyczna rzeczywistość ulega degradacji pod wpływem obcej woli.`,
+            egzorcyzm: `Całkowite odcięcie lęku (zagłodzenie bytu), wypędzenie wyświęconym ostrzem i pieczęcią Heksagramu Unicursalnego.`,
             svg: getSVG('demon', '#9e1a1a')
         });
     }
 
-    // BEZPIECZNA OBSŁUGA KAMERY Z WYKRYCIEM BRAKU WSPARCIA / PLIKU LOKALNEGO
     const videoElement = document.getElementById('cameraStream');
     const cameraErrorBox = document.getElementById('cameraError');
     const scanBtn = document.getElementById('scanBtn');
     const scannerStatus = document.getElementById('scannerStatus');
+    const canvas = document.getElementById('analysisCanvas');
+    const ctx = canvas.getContext('2d');
 
-    function handleCameraError(msg) {
+    let cameraActive = false;
+
+    function handleCameraError() {
         cameraActive = false;
         scanBtn.disabled = true;
         videoElement.style.display = 'none';
         cameraErrorBox.style.display = 'flex';
         cameraErrorBox.innerText = "Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki";
-        scannerStatus.innerText = "BŁĄD: " + msg;
+        scannerStatus.innerText = "BŁĄD: Brak dostępu do strumienia wizyjnego.";
     }
 
-    // Sprawdzenie czy navigator.mediaDevices i getUserMedia istnieją (ochrona przed file:// i brakiem HTTPS)
     if (navigator && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
                 videoElement.srcObject = stream;
                 cameraActive = true;
                 scanBtn.disabled = false;
-                scannerStatus.innerText = "Status kamery: Aktywna. Skaner spektrograficzny gotowy.";
+                scannerStatus.innerText = "Status kamery: Aktywna. Skaner optyczny gotowy do analizy.";
             })
-            .catch(err => {
-                handleCameraError("Odrzucono uprawnienia lub brak sygnału z matrycy.");
-            });
+            .catch(err => { handleCameraError(); });
     } else {
-        handleCameraError("Brak wsparcia dla API mediastream (wymagany serwer lokalny / HTTPS lub środowisko blokuje dostęp).");
+        handleCameraError();
     }
 
-    // FUNKCJA SKANOWANIA Z KAMERKI
-    function triggerCameraScan() {
+    // REALNA ANALIZA PIKSELIZACJI I PARAMETRÓW OBRAZU Z KAMERY
+    function executeOpticalScan() {
         if (!cameraActive) {
             alert("Nie można odczytać tego co podaje kamerka / brak dostępu do kamerki");
             return;
         }
 
-        scannerStatus.innerText = "Analiza optyczna klatki... Dopasowywanie wzorców anomalii...";
+        scannerStatus.innerText = "Analiza matrycy optycznej i struktury otoczenia...";
         scanBtn.disabled = true;
 
+        // Przechwycenie klatki wideo do analizy
+        canvas.width = videoElement.videoWidth || 300;
+        canvas.height = videoElement.videoHeight || 300;
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+        // Pobranie próby pikseli z centralnego punktu celownika
+        const frameData = ctx.getImageData(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
+        const pixels = frameData.data;
+        
+        let rSum = 0, gSum = 0, bSum = 0, brightnessSum = 0;
+        const len = pixels.length;
+
+        for (let i = 0; i < len; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i+1];
+            const b = pixels[i+2];
+            rSum += r;
+            gSum += g;
+            bSum += b;
+            brightnessSum += (r + g + b) / 3;
+        }
+
+        const totalPixels = len / 4;
+        const avgR = rSum / totalPixels;
+        const avgG = gSum / totalPixels;
+        const avgB = bSum / totalPixels;
+        const avgBrightness = brightnessSum / totalPixels;
+
         setTimeout(() => {
-            const randomItem = database[Math.floor(Math.random() * database.length)];
-            scannerStatus.innerText = "Zidentyfikowano sygnaturę bytu w kadrze!";
+            // Algorytm dopasowania na podstawie rzeczywistego odczytu matrycy
+            let selectedItem;
+            
+            if (avgBrightness < 45) {
+                // Ciemne otoczenie (np. piwnica, noc, zacieniona posadzka) -> wysokie zagrożenie / demon
+                const demons = database.filter(x => x.sila >= 75);
+                selectedItem = demons[Math.floor(avgR + avgB) % demons.length];
+            } else if (avgR > avgG && avgR > avgB) {
+                // Dominacja czerwieni/ciepłych tonów -> ślady emocjonalne
+                const ghosts = database.filter(x => x.sila >= 30 && x.sila < 75);
+                selectedItem = ghosts[Math.floor(avgG) % ghosts.length];
+            } else {
+                // Jasne lub neutralne otoczenie -> matryce ochronne lub lżejsze echa
+                const pentacles = database.filter(x => x.sila < 50);
+                selectedItem = pentacles[Math.floor(avgBrightness) % pentacles.length];
+            }
+
+            scannerStatus.innerText = `Zanalizowano otoczenie (Jasność: ${Math.round(avgBrightness)}, RGB: ${Math.round(avgR)},${Math.round(avgG)},${Math.round(avgB)})`;
             scanBtn.disabled = false;
-            openModal(randomItem.id);
-        }, 1500);
+            openModal(selectedItem.id);
+        }, 1200);
     }
 
-    // RENDEROWANIE SIATKI
     const grid = document.getElementById('database-grid');
     function renderCards(data) {
-        grid.innerHTML = data.slice(0, 50).map(item => `
+        grid.innerHTML = data.slice(0, 30).map(item => `
             <div class="card" onclick="openModal('${item.id}')" data-title="${item.nazwa.toLowerCase()}">
                 <div class="svg-container">${item.svg}</div>
-                <h3 style="color: ${item.kategoria.includes('Demon') || item.kategoria.includes('Anomalia') ? 'var(--accent-red)' : (item.kategoria.includes('Duch') ? 'var(--accent-blue)' : 'var(--accent-gold)')}">
-                    ${item.nazwa}
-                </h3>
+                <h3 style="color: ${item.sila > 75 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-blue)' : 'var(--accent-gold)')}">${item.nazwa}</h3>
                 <p>Typ: ${item.kategoria}</p>
                 <p>Siła: ${item.sila}/100</p>
             </div>
@@ -354,18 +374,14 @@
     }
     renderCards(database);
 
-    // WYSZUKIWARKA
     function filterDatabase() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const cards = document.querySelectorAll('.card');
-        cards.forEach(card => {
-            const title = card.getAttribute('data-title');
-            if(title.includes(query)) card.classList.remove('hidden');
+        document.querySelectorAll('.card').forEach(card => {
+            if(card.getAttribute('data-title').includes(query)) card.classList.remove('hidden');
             else card.classList.add('hidden');
         });
     }
 
-    // MODAL
     function openModal(id) {
         const item = database.find(x => x.id === id);
         if(!item) return;
@@ -383,15 +399,14 @@
         setTimeout(() => {
             const bar = document.getElementById('modal-power-bar');
             bar.style.width = item.sila + '%';
-            bar.style.backgroundColor = item.sila > 80 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-gold)' : 'var(--accent-blue)');
+            bar.style.backgroundColor = item.sila > 75 ? 'var(--accent-red)' : (item.sila > 40 ? 'var(--accent-blue)' : 'var(--accent-gold)');
         }, 50);
     }
 
     function closeModal(e) {
-        if (e.target.id === 'infoModal') {
-            document.getElementById('infoModal').style.display = 'none';
-        }
+        if (e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none';
     }
 </script>
 </body>
 </html>
+
